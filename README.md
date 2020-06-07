@@ -11,6 +11,8 @@ $ sudo ./install.sh
 Create a file named `launchfile` on you app's parent folder.  
 Here is a list of useful functions and features:
 
+**$argc** and **$argv**: You can get your lauch args like this. It will not contain the `--redirect`.  
+
 **cmd** : Execute a command.  
 > **Exemple**:  
 > ```bash
