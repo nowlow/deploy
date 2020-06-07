@@ -9,4 +9,4 @@ if [[ $EUID -ne 0 ]]; then
     error "This script must be run as root."
 fi
 
-mv ./src/launch /usr/bin
+cp ./src/launch /usr/bin
