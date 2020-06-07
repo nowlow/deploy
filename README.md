@@ -42,5 +42,4 @@ Be careful, for each app, two files are being created: `<app>.pid` and `<app>.lo
 
 If tou start launch with `--redirect` you will not see the `exe` commands output, it will be redirected to a given file.  
 
-Exemple video can be found [here](.github/launch.mp4).
-<video src=".github/launch.mp4" />
+Exemple video can be found [here](https://youtu.be/dpncDyv_SVw).
