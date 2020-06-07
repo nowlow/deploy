@@ -1,0 +1,216 @@
+#!/bin/bash
+
+export APP_NAME=""
+export DEPLOYED=0
+
+function tab {
+    if [ $TAB -eq 1 ]; then
+        printf "\t"
+    fi
+}
+
+# success
+#
+# PARAMETERS:
+#   $1: message to print
+function success {
+    tab
+    echo -e "\e[1m\e[32m[SUCCESS] >\e[0m $1"
+}
+
+# error
+#
+# PARAMETERS:
+#   $1: message to print
+#   $2: exit status of the failed command
+function error {
+    tab
+    echo -e "\e[1m\e[31m[ERROR] >\e[0m $1 (exit status: $2)"
+    exit $ret
+}
+
+# info
+#
+# PARAMETERS:
+#   $1: message to print
+function info {
+    tab
+    echo -e "\e[1m[INFO] >\e[0m $1"
+}
+
+# warning
+#
+# PARAMETERS:
+#   $1: message to print
+function warning {
+    tab
+    echo -e "\e[1m\e[33m[WARNING] >\e[0m $1"
+}
+
+# app_info
+#
+# PARAMETERS:
+#   $1: application name (will be used as project subfolder)
+function app_info()
+{
+    if [[ $APP_NAME != "" ]] && [ $DEPLOYED -ne 1 ]; then
+        warning "App \e[1m$APP_NAME\e[0m not deployed."
+    fi
+    export APP_NAME=$1
+    export TAB=1
+    export DEPLOYED=0
+
+    echo -e "Deploying \e[1m$1\e[0m:"
+}
+
+# function: change_dir
+#
+# PARAMETERS:
+#    $1: directory to change to
+function change_dir {
+    cd $1 > /dev/null 2>&1
+
+    local ret=$?
+    if [ $ret -ne 0 ]; then
+        error "Failed to change directory to \e[1m$1\e[0m" $ret
+    fi
+}
+
+# function: app_dir
+function app_dir {
+    if [[ $APP_NAME != "" ]]; then
+        cd $APP_NAME > /dev/null 2>&1
+
+        local ret=$?
+        if [ $ret -ne 0 ]; then
+            error "Failed to change directory to \e[1m$1\e[0m" $ret
+        fi
+    fi
+}
+
+# function: app_dir
+function app_dir_back {
+    if [[ $APP_NAME != "" ]]; then
+        cd - > /dev/null 2>&1
+
+        local ret=$?
+        if [ $ret -ne 0 ]; then
+            error "Failed to change directory to \e[1m$1\e[0m" $ret
+        fi
+    fi
+}
+
+# execute_command
+#
+# PARAMETERS:
+#   $@: command to execute
+function cmd {
+    info "Executing \e[1m$1\e[0m ..."
+
+    app_dir
+    if [ $REDIRECT -eq 1 ]; then
+        $@ >> /tmp/$REDIRECT_FILE.log
+    else
+        $@
+    fi
+
+    local ret=$?
+    if [ $ret -eq 0 ]; then
+	    success "Command execution OK"
+    else
+	    error "Command execution failed" $ret
+    fi
+    app_dir_back
+}
+
+# kill_last
+function kill_last {
+    local pid=`cat $APP_NAME.pid 2> /dev/null`
+
+    if ! kill $pid > /dev/null 2>&1; then
+        info "Application wasn't started"
+    else
+        warning "Application was started"
+    fi
+}
+
+# launch_app
+#
+# PARAMETERS:
+#   $1: command to execute to launch the app
+function launch_app {
+    if [[ $APP_NAME == "" ]]; then
+        warning "Asked to launch no app (use app_info)."
+        return 0
+    fi
+
+    kill_last
+
+    info "Launching \e[1m$APP_NAME\e[0m"
+
+    change_dir $APP_NAME
+    nohup $@ > ../$APP_NAME.log 2>&1 &
+    export LAST_PID=$!
+    change_dir "-"
+
+    echo $LAST_PID > $APP_NAME.pid
+    local ret=$?
+    if [ $ret -eq 0 ]; then
+	    success "Launched \e[1m$APP_NAME\e[0m successfully"
+    else
+	    error "Error while launching \e[1m$APP_NAME\e[0m" $ret
+    fi
+    export DEPLOYED=1
+}
+
+export TAB=0
+
+export REDIRECT=0
+export REDIRECT_FILE=deploy_$(date +%M_%T)
+
+function _internal_arg_exists {
+    for arg in "${@:2}"
+    do
+        if [ $arg == $1 ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+function arg_exists {
+    for arg in $argv
+    do
+        if [ $arg == $1 ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+if _internal_arg_exists "--redirect" "$@" ; then
+    info "Redirecting commands output to /tmp/$REDIRECT_FILE.log"
+    export REDIRECT=1
+fi
+
+list=("$@")
+argv=()
+ELEMENTS=${#list[@]}
+
+for (( i=0;i<$ELEMENTS;i++)); do
+    if [[ ${list[${i}]} != "--redirect" ]]; then
+        argv=(${argv[@]} "${list[${i}]}")
+    fi
+done
+
+argc=${#argv[@]}
+
+if [ -e launchfile ]; then
+    source launchfile
+    if [[ $APP_NAME != "" ]] && [ $DEPLOYED -ne 1 ]; then
+        warning "App \e[1m$APP_NAME\e[0m not deployed."
+    fi
+else
+    error "No launchfile provided, please verify your path and try again" 1
+    exit 1
+fi
