@@ -11,10 +11,10 @@ $ sudo ./install.sh
 Create a file named `launchfile` on you app's parent folder.  
 Here is a list of useful functions and features:
 
-**exe** : Execute a command.  
+**cmd** : Execute a command.  
 > **Exemple**:  
 > ```bash
-> exe echo "hi everyone"
+> cmd echo "hi everyone"
 > ```  
 
 **app_info**: Tells **launch** that you want to deploy an app.

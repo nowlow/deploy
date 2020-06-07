@@ -51,8 +51,7 @@ function warning {
 #
 # PARAMETERS:
 #   $1: application name (will be used as project subfolder)
-function app_info()
-{
+function app_info {
     if [[ $APP_NAME != "" ]] && [ $DEPLOYED -ne 1 ]; then
         warning "App \e[1m$APP_NAME\e[0m not deployed."
     fi
@@ -109,7 +108,7 @@ function cmd {
 
     app_dir
     if [ $REDIRECT -eq 1 ]; then
-        $@ >> /tmp/$REDIRECT_FILE.log
+        $@ >> /tmp/$REDIRECT_FILE.log 2>&1
     else
         $@
     fi
